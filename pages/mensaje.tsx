@@ -15,14 +15,20 @@ export default function Mensaje() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [isClient, setIsClient] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
-    // Verificar si ya está autenticado
-    const authStatus = localStorage.getItem("clubAuth");
-    if (authStatus === "true") {
-      setIsAuthenticated(true);
-      fetchCurrentMessage();
+    // Marcar que estamos en el cliente
+    setIsClient(true);
+    
+    // Verificar si ya está autenticado (solo en el cliente)
+    if (typeof window !== 'undefined') {
+      const authStatus = localStorage.getItem("clubAuth");
+      if (authStatus === "true") {
+        setIsAuthenticated(true);
+        fetchCurrentMessage();
+      }
     }
   }, []);
 
@@ -40,7 +46,9 @@ export default function Mensaje() {
     e.preventDefault();
     if (password === "rotosaurio1.") {
       setIsAuthenticated(true);
-      localStorage.setItem("clubAuth", "true");
+      if (typeof window !== 'undefined') {
+        localStorage.setItem("clubAuth", "true");
+      }
       fetchCurrentMessage();
     } else {
       setError("Contraseña incorrecta");
@@ -49,7 +57,9 @@ export default function Mensaje() {
 
   const handleLogout = () => {
     setIsAuthenticated(false);
-    localStorage.removeItem("clubAuth");
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem("clubAuth");
+    }
     setMessage("");
     setError("");
     setSuccess("");
@@ -87,6 +97,18 @@ export default function Mensaje() {
       setIsLoading(false);
     }
   };
+
+  // Mostrar estado de carga mientras se hidrata
+  if (!isClient) {
+    return (
+      <div className={`${geistSans.variable} min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900 flex items-center justify-center p-8`}>
+        <div className="bg-white/10 backdrop-blur-sm rounded-lg p-8 border border-white/20 max-w-md w-full text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-400 mx-auto mb-4"></div>
+          <p className="text-white">Cargando...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return (
