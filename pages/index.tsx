@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { useState, useEffect } from "react";
 import localFont from "next/font/local";
 
 const geistSans = localFont({
@@ -13,103 +13,156 @@ const geistMono = localFont({
 });
 
 export default function Home() {
-  return (
-    <div
-      className={`${geistSans.variable} ${geistMono.variable} grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]`}
-    >
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              pages/index.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [timeLeft, setTimeLeft] = useState({
+    days: 0,
+    hours: 0,
+    minutes: 0,
+    seconds: 0,
+    milliseconds: 0
+  });
+  const [currentMessage, setCurrentMessage] = useState("");
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  useEffect(() => {
+    const calculateTimeLeft = () => {
+      const now = new Date();
+      const targetTime = new Date();
+      
+      // Configurar para 11:00 AM GMT-6 (hora central)
+      targetTime.setHours(11, 0, 0, 0);
+      
+      // Si ya pasó la hora de hoy, configurar para mañana
+      if (now.getHours() >= 11 && now.getMinutes() >= 0) {
+        targetTime.setDate(targetTime.getDate() + 1);
+      }
+      
+      const difference = targetTime.getTime() - now.getTime();
+      
+      if (difference > 0) {
+        const days = Math.floor(difference / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((difference % (1000 * 60)) / 1000);
+        const milliseconds = difference % 1000;
+        
+        setTimeLeft({ days, hours, minutes, seconds, milliseconds });
+      }
+    };
+
+    // Calcular tiempo inicial
+    calculateTimeLeft();
+    
+    // Actualizar cada milisegundo para mostrar milisegundos en tiempo real
+    const timer = setInterval(calculateTimeLeft, 1);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    // Obtener el mensaje actual desde localStorage o API
+    const fetchMessage = async () => {
+      try {
+        const response = await fetch('/api/message');
+        const data = await response.json();
+        setCurrentMessage(data.message || "¡Bienvenidos al Club!");
+      } catch (error) {
+        setCurrentMessage("¡Bienvenidos al Club!");
+      }
+    };
+
+    fetchMessage();
+  }, []);
+
+  useEffect(() => {
+    // Actualizar la hora actual después de la hidratación
+    const updateCurrentTime = () => {
+      const timeElement = document.getElementById('current-time');
+      if (timeElement) {
+        timeElement.textContent = new Date().toLocaleString('es-ES', { 
+          timeZone: 'America/Chicago',
+          year: 'numeric', 
+          month: '2-digit', 
+          day: '2-digit',
+          hour: '2-digit', 
+          minute: '2-digit', 
+          second: '2-digit' 
+        });
+      }
+    };
+
+    // Actualizar inmediatamente
+    updateCurrentTime();
+    
+    // Actualizar cada segundo
+    const timeInterval = setInterval(updateCurrentTime, 1000);
+
+    return () => clearInterval(timeInterval);
+  }, []);
+
+  return (
+    <div className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900 flex flex-col items-center justify-center p-8`}>
+      <div className="text-center text-white max-w-4xl mx-auto">
+        <h1 className="text-5xl md:text-7xl font-bold mb-8 bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
+          Reunión del Club
+        </h1>
+        
+        <div className="mb-12">
+          <h2 className="text-2xl md:text-3xl font-semibold mb-6 text-gray-200">
+            Próxima reunión: 11:00 AM (GMT-6)
+          </h2>
+          
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 border border-white/20">
+              <div className="text-4xl md:text-6xl font-bold text-yellow-400 font-mono">
+                {timeLeft.days.toString().padStart(2, '0')}
+              </div>
+              <div className="text-sm md:text-lg text-gray-300">Días</div>
+            </div>
+            
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 border border-white/20">
+              <div className="text-4xl md:text-6xl font-bold text-yellow-400 font-mono">
+                {timeLeft.hours.toString().padStart(2, '0')}
+              </div>
+              <div className="text-sm md:text-lg text-gray-300">Horas</div>
+            </div>
+            
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 border border-white/20">
+              <div className="text-4xl md:text-6xl font-bold text-yellow-400 font-mono">
+                {timeLeft.minutes.toString().padStart(2, '0')}
+              </div>
+              <div className="text-sm md:text-lg text-gray-300">Minutos</div>
+            </div>
+            
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 border border-white/20">
+              <div className="text-4xl md:text-6xl font-bold text-yellow-400 font-mono">
+                {timeLeft.seconds.toString().padStart(2, '0')}
+              </div>
+              <div className="text-sm md:text-lg text-gray-300">Segundos</div>
+            </div>
+            
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 border border-white/20">
+              <div className="text-2xl md:text-4xl font-bold text-yellow-400 font-mono">
+                {timeLeft.milliseconds.toString().padStart(3, '0')}
+              </div>
+              <div className="text-sm md:text-lg text-gray-300">ms</div>
+            </div>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+
+        {currentMessage && (
+          <div className="bg-white/10 backdrop-blur-sm rounded-lg p-8 border border-white/20 max-w-2xl mx-auto">
+            <h3 className="text-xl md:text-2xl font-semibold mb-4 text-gray-200">
+              Mensaje del Club
+            </h3>
+            <p className="text-lg md:text-xl text-gray-100 leading-relaxed">
+              {currentMessage}
+            </p>
+          </div>
+        )}
+
+        <div className="mt-12 text-sm text-gray-400">
+          <p>Hora actual: <span id="current-time">Cargando...</span></p>
+        </div>
+      </div>
     </div>
   );
 }
