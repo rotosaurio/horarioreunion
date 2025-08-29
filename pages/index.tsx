@@ -61,10 +61,11 @@ export default function Home() {
     // Obtener el mensaje actual desde localStorage o API
     const fetchMessage = async () => {
       try {
-        const response = await fetch('/api/message');
+        const response = await fetch('/api/message-v2');
         const data = await response.json();
         setCurrentMessage(data.message || "¡Bienvenidos al Club!");
       } catch (error) {
+        console.error('Error fetching message:', error);
         setCurrentMessage("¡Bienvenidos al Club!");
       }
     };

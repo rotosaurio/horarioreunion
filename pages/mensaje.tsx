@@ -34,11 +34,12 @@ export default function Mensaje() {
 
   const fetchCurrentMessage = async () => {
     try {
-      const response = await fetch('/api/message');
+      const response = await fetch('/api/message-v2');
       const data = await response.json();
       setMessage(data.message || "");
     } catch (error) {
       console.error("Error fetching message:", error);
+      setMessage("¡Bienvenidos al Club!");
     }
   };
 
@@ -77,7 +78,7 @@ export default function Mensaje() {
     setSuccess("");
 
     try {
-      const response = await fetch('/api/message', {
+      const response = await fetch('/api/message-v2', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

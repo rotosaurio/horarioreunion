@@ -2,10 +2,18 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import fs from 'fs';
 import path from 'path';
 
+// Variable global para almacenar el mensaje en memoria (para Vercel)
+let inMemoryMessage = "¡Bienvenidos al Club! La próxima reunión será a las 11:00 AM. ¡No falten!";
+let inMemoryUpdatedAt = new Date().toISOString();
+
 const MESSAGE_FILE = path.join(process.cwd(), 'data', 'message.json');
 
-// Asegurar que el directorio data existe
+// Verificar si estamos en Vercel
+const isVercel = process.env.VERCEL === '1';
+
+// Asegurar que el directorio data existe (solo para desarrollo local)
 const ensureDataDir = () => {
+  if (isVercel) return; // No crear directorios en Vercel
   const dataDir = path.dirname(MESSAGE_FILE);
   if (!fs.existsSync(dataDir)) {
     fs.mkdirSync(dataDir, { recursive: true });
@@ -13,25 +21,44 @@ const ensureDataDir = () => {
 };
 
 // Leer el mensaje actual
-const getCurrentMessage = (): string => {
+const getCurrentMessage = (): { message: string; updatedAt: string } => {
+  if (isVercel) {
+    return { message: inMemoryMessage, updatedAt: inMemoryUpdatedAt };
+  }
+  
   try {
     ensureDataDir();
     if (fs.existsSync(MESSAGE_FILE)) {
       const data = fs.readFileSync(MESSAGE_FILE, 'utf8');
       const parsed = JSON.parse(data);
-      return parsed.message || "¡Bienvenidos al Club!";
+      return {
+        message: parsed.message || "¡Bienvenidos al Club!",
+        updatedAt: parsed.updatedAt || new Date().toISOString()
+      };
     }
   } catch (error) {
     console.error('Error reading message file:', error);
   }
-  return "¡Bienvenidos al Club!";
+  
+  return {
+    message: "¡Bienvenidos al Club!",
+    updatedAt: new Date().toISOString()
+  };
 };
 
 // Guardar el mensaje
 const saveMessage = (message: string): boolean => {
+  const now = new Date().toISOString();
+  
+  if (isVercel) {
+    inMemoryMessage = message;
+    inMemoryUpdatedAt = now;
+    return true;
+  }
+  
   try {
     ensureDataDir();
-    const data = { message, updatedAt: new Date().toISOString() };
+    const data = { message, updatedAt: now };
     fs.writeFileSync(MESSAGE_FILE, JSON.stringify(data, null, 2));
     return true;
   } catch (error) {
@@ -53,8 +80,8 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
 
   if (req.method === 'GET') {
     // Obtener el mensaje actual
-    const message = getCurrentMessage();
-    res.status(200).json({ message });
+    const data = getCurrentMessage();
+    res.status(200).json(data);
   } else if (req.method === 'POST') {
     // Actualizar el mensaje
     const { message } = req.body;
@@ -70,7 +97,11 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
     const success = saveMessage(message.trim());
     
     if (success) {
-      res.status(200).json({ message: 'Mensaje actualizado correctamente' });
+      const data = getCurrentMessage();
+      res.status(200).json({ 
+        message: 'Mensaje actualizado correctamente',
+        data 
+      });
     } else {
       res.status(500).json({ error: 'Error al guardar el mensaje' });
     }
